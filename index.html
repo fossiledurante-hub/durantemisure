@@ -53,13 +53,58 @@ function addItem(type){
   let ctx = canvas.getContext("2d");
   let drawing=false;
 
-  canvas.onmousedown=()=>drawing=true;
-  canvas.onmouseup=()=>drawing=false;
-  canvas.onmousemove=(e)=>{
-    if(!drawing) return;
-    ctx.lineTo(e.offsetX,e.offsetY);
-    ctx.stroke();
-  };
+  let drawing = false;
+
+function getPos(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  if (e.touches) {
+    return {
+      x: e.touches[0].clientX - rect.left,
+      y: e.touches[0].clientY - rect.top
+    };
+  } else {
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  }
+}
+
+canvas.addEventListener("mousedown", (e) => {
+  drawing = true;
+  const pos = getPos(e, canvas);
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!drawing) return;
+  const pos = getPos(e, canvas);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+});
+
+canvas.addEventListener("mouseup", () => drawing = false);
+canvas.addEventListener("mouseleave", () => drawing = false);
+
+// TOUCH (iPad)
+canvas.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  drawing = true;
+  const pos = getPos(e, canvas);
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+});
+
+canvas.addEventListener("touchmove", (e) => {
+  e.preventDefault();
+  if (!drawing) return;
+  const pos = getPos(e, canvas);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+});
+
+canvas.addEventListener("touchend", () => drawing = false);
 
   itemsDiv.appendChild(div);
 }
