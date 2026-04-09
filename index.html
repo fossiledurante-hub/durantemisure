@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DuranteMisure</title>
+</head>
+<body style="font-family: sans-serif; padding:20px;">
+
+<h2>DuranteMisure</h2>
+
+<input placeholder="Cliente" style="width:100%; padding:10px;"><br><br>
+
+<div id="buttons"></div>
+
+<div id="items"></div>
+
+<script>
+const types = [
+"Finestra 1 anta","Finestra 2 ante","Finestra 3 ante",
+"Porta 1 anta","Porta 2 ante","Porta 3 ante",
+"Scorrevole 2 ante","Scorrevole 3 ante",
+"Porta blindata","Persiana 1 anta","Persiana 2 ante","Persiana 3 ante",
+"Controtelaio","Monoblocco"
+];
+
+const buttonsDiv = document.getElementById("buttons");
+const itemsDiv = document.getElementById("items");
+
+types.forEach(t=>{
+  let b = document.createElement("button");
+  b.innerText = "+ " + t;
+  b.style.margin="5px";
+  b.onclick=()=>addItem(t);
+  buttonsDiv.appendChild(b);
+});
+
+function addItem(type){
+  let div = document.createElement("div");
+  div.style.border="1px solid #ccc";
+  div.style.padding="10px";
+  div.style.marginTop="10px";
+
+  div.innerHTML = `
+    <b>${type}</b><br><br>
+    L: <input><br>
+    H: <input><br><br>
+    <textarea placeholder="Note" style="width:100%; height:80px;"></textarea>
+    <br><br>
+    <canvas width="300" height="150" style="border:1px solid black;"></canvas>
+  `;
+
+  let canvas = div.querySelector("canvas");
+  let ctx = canvas.getContext("2d");
+  let drawing=false;
+
+  canvas.onmousedown=()=>drawing=true;
+  canvas.onmouseup=()=>drawing=false;
+  canvas.onmousemove=(e)=>{
+    if(!drawing) return;
+    ctx.lineTo(e.offsetX,e.offsetY);
+    ctx.stroke();
+  };
+
+  itemsDiv.appendChild(div);
+}
+</script>
+
+</body>
+</html>
