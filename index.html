@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DuranteMisure</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DuranteMisure</title>
 </head>
-<body style="font-family: sans-serif; padding:20px;">
+
+<body style="font-family:sans-serif; padding:20px;">
 
 <h2>DuranteMisure</h2>
 
-<input placeholder="Cliente" style="width:100%; padding:10px;"><br><br>
+<input id="cliente" placeholder="Cliente" style="width:100%; padding:10px;"><br><br>
+
+<button onclick="exportPDF()">🧾 Esporta PDF</button>
 
 <div id="buttons"></div>
-
 <div id="items"></div>
 
 <script>
+
 const types = [
 "Finestra 1 anta","Finestra 2 ante","Finestra 3 ante",
 "Porta 1 anta","Porta 2 ante","Porta 3 ante",
@@ -26,6 +29,7 @@ const types = [
 const buttonsDiv = document.getElementById("buttons");
 const itemsDiv = document.getElementById("items");
 
+// BOTTONI
 types.forEach(t=>{
   let b = document.createElement("button");
   b.innerText = "+ " + t;
@@ -34,80 +38,150 @@ types.forEach(t=>{
   buttonsDiv.appendChild(b);
 });
 
-function addItem(type){
+// SALVATAGGIO
+function saveAll(){
+  let data = [];
+  document.querySelectorAll("#items > div").forEach(div=>{
+    let inputs = div.querySelectorAll("input");
+    let textarea = div.querySelector("textarea");
+
+    data.push({
+      type: div.dataset.type,
+      L: inputs[0].value,
+      H: inputs[1].value,
+      note: textarea.value
+    });
+  });
+
+  localStorage.setItem("infissi", JSON.stringify(data));
+  localStorage.setItem("cliente", document.getElementById("cliente").value);
+}
+
+// CARICAMENTO
+window.onload = () => {
+  let saved = localStorage.getItem("infissi");
+  let cliente = localStorage.getItem("cliente");
+
+  if(cliente) document.getElementById("cliente").value = cliente;
+
+  if(saved){
+    JSON.parse(saved).forEach(d=>addItem(d.type, d));
+  }
+};
+
+// DISEGNI BASE
+function drawTemplate(ctx, type){
+  ctx.clearRect(0,0,300,150);
+  ctx.strokeRect(10,10,280,130);
+
+  if(type.includes("2 ante")){
+    ctx.moveTo(150,10); ctx.lineTo(150,140);
+  }
+  if(type.includes("3 ante")){
+    ctx.moveTo(100,10); ctx.lineTo(100,140);
+    ctx.moveTo(200,10); ctx.lineTo(200,140);
+  }
+  if(type.includes("Scorrevole")){
+    ctx.moveTo(20,75); ctx.lineTo(280,75);
+  }
+  if(type.includes("Persiana")){
+    for(let i=20;i<140;i+=10){
+      ctx.moveTo(10,i); ctx.lineTo(290,i);
+    }
+  }
+
+  ctx.stroke();
+}
+
+// AGGIUNTA INFISSO
+function addItem(type, existing = null){
+
   let div = document.createElement("div");
+  div.dataset.type = type;
+
   div.style.border="1px solid #ccc";
   div.style.padding="10px";
   div.style.marginTop="10px";
 
   div.innerHTML = `
     <b>${type}</b><br><br>
-    L: <input><br>
-    H: <input><br><br>
-    <textarea placeholder="Note" style="width:100%; height:80px;"></textarea>
+    L: <input value="${existing?.L || ""}"><br>
+    H: <input value="${existing?.H || ""}"><br><br>
+    <textarea style="width:100%; height:80px;">${existing?.note || ""}</textarea>
     <br><br>
     <canvas width="300" height="150" style="border:1px solid black;"></canvas>
   `;
 
   let canvas = div.querySelector("canvas");
   let ctx = canvas.getContext("2d");
-  let drawing=false;
+
+  drawTemplate(ctx, type);
 
   let drawing = false;
 
-function getPos(e, canvas) {
-  const rect = canvas.getBoundingClientRect();
-  if (e.touches) {
-    return {
-      x: e.touches[0].clientX - rect.left,
-      y: e.touches[0].clientY - rect.top
-    };
-  } else {
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    if(e.touches){
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top
+      };
+    } else {
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
   }
-}
 
-canvas.addEventListener("mousedown", (e) => {
-  drawing = true;
-  const pos = getPos(e, canvas);
-  ctx.beginPath();
-  ctx.moveTo(pos.x, pos.y);
-});
+  canvas.addEventListener("mousedown", e=>{
+    drawing=true;
+    let p=getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x,p.y);
+  });
 
-canvas.addEventListener("mousemove", (e) => {
-  if (!drawing) return;
-  const pos = getPos(e, canvas);
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
-});
+  canvas.addEventListener("mousemove", e=>{
+    if(!drawing) return;
+    let p=getPos(e);
+    ctx.lineTo(p.x,p.y);
+    ctx.stroke();
+  });
 
-canvas.addEventListener("mouseup", () => drawing = false);
-canvas.addEventListener("mouseleave", () => drawing = false);
+  canvas.addEventListener("mouseup", ()=>drawing=false);
 
-// TOUCH (iPad)
-canvas.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-  drawing = true;
-  const pos = getPos(e, canvas);
-  ctx.beginPath();
-  ctx.moveTo(pos.x, pos.y);
-});
+  canvas.addEventListener("touchstart", e=>{
+    e.preventDefault();
+    drawing=true;
+    let p=getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x,p.y);
+  });
 
-canvas.addEventListener("touchmove", (e) => {
-  e.preventDefault();
-  if (!drawing) return;
-  const pos = getPos(e, canvas);
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
-});
+  canvas.addEventListener("touchmove", e=>{
+    e.preventDefault();
+    if(!drawing) return;
+    let p=getPos(e);
+    ctx.lineTo(p.x,p.y);
+    ctx.stroke();
+  });
 
-canvas.addEventListener("touchend", () => drawing = false);
+  canvas.addEventListener("touchend", ()=>drawing=false);
+
+  // AUTO SAVE
+  div.querySelectorAll("input, textarea").forEach(el=>{
+    el.addEventListener("input", saveAll);
+  });
 
   itemsDiv.appendChild(div);
+  saveAll();
 }
+
+// PDF
+function exportPDF(){
+  window.print();
+}
+
 </script>
 
 </body>
